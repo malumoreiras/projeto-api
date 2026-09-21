@@ -1,83 +1,93 @@
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
 
 void main() {
   runApp(const MaterialApp(
-    home: Cnpj(),
+    debugShowCheckedModeBanner: false,
+    home: Localizacao(),
   ));
 }
 
-class Cnpj extends StatefulWidget {
-  const Cnpj({super.key});
+// Tela que pode ser atualizada
+class Localizacao extends StatefulWidget {
+  const Localizacao({super.key});
 
   @override
-  State<Cnpj> createState() => _CnpjState();
+  State<Localizacao> createState() => _LocalizacaoState();
 }
 
-class _CnpjState extends State<Cnpj> {
-  final cnpj = TextEditingController();
+class _LocalizacaoState extends State<Localizacao> {
 
-  String empresa = '';
+  // Variáveis que exibem os dados na tela
+  String latitude = 'Aguardando...';
+  String longitude = 'Aguardando...';
 
-  consultar() async {
-    final url = Uri.parse(
-      'https://api.opencnpj.org/${cnpj.text}',
-    );
+  // Função que busca a localização atual
+  Future<void> buscarLocalizacao() async {
 
-    final resposta = await http.get(url);
+    // Solicita permissão para acessar a localização
+    LocationPermission permissao =
+        await Geolocator.requestPermission();
 
-    final dados = jsonDecode(resposta.body);
+    // Verifica se a permissão foi negada
+    if (permissao == LocationPermission.denied ||
+        permissao == LocationPermission.deniedForever) {
 
+      // Atualiza os textos da tela
+      setState(() {
+        latitude = 'Permissão negada';
+        longitude = 'Permissão negada';
+      });
+
+      // Encerra a função
+      return;
+    }
+
+    // Busca a posição atual do dispositivo
+    Position posicao =
+        await Geolocator.getCurrentPosition();
+
+    // Atualiza a tela com os dados recebidos
     setState(() {
-      empresa =
-          'Razão Social: ${dados['razao_social']}\n'
-          'Nome Fantasia: ${dados['nome_fantasia']}\n'
-          'CNPJ: ${dados['cnpj']}\n'
-          'Situação: ${dados['situacao_cadastral']}\n'
-          'Endereço: ${dados['logradouro']}, ${dados['numero']}\n'
-          '${dados['bairro']} - ${dados['municipio']}/${dados['uf']}';
+      latitude = posicao.latitude.toString();
+      longitude = posicao.longitude.toString();
     });
   }
 
+  // Constrói a interface do aplicativo
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
+
+      // Barra superior da tela
       appBar: AppBar(
-        title: const Text('Consulta CNPJ'),
+        title: const Text('Minha Localização'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+
+      // Conteúdo principal
+      body: Center(
         child: Column(
+
+          // Centraliza os elementos verticalmente
+          mainAxisAlignment: MainAxisAlignment.center,
+
           children: [
-            const Icon(
-              Icons.business,
-              size: 100,
-            ),
 
-            const SizedBox(height: 30),
+            // Exibe a latitude
+            Text('Latitude: $latitude'),
 
-            TextField(
-              controller: cnpj,
-              decoration: const InputDecoration(
-                labelText: 'CNPJ',
-                border: OutlineInputBorder(),
-              ),
-            ),
+            // Exibe a longitude
+            Text('Longitude: $longitude'),
 
+            // Espaço entre os textos e o botão
             const SizedBox(height: 20),
 
+            // Botão que busca a localização
             ElevatedButton(
-              onPressed: consultar,
-              child: const Text('Consultar'),
-            ),
-
-            const SizedBox(height: 30),
-
-            Text(
-              empresa,
-              textAlign: TextAlign.center,
+              onPressed: buscarLocalizacao,
+              child: const Text('Obter Localização'),
             ),
           ],
         ),
